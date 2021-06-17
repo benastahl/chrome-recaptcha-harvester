@@ -4,49 +4,34 @@ import re
 import shutil
 import sys
 import time
+import colorama
 
 from selenium.common.exceptions import TimeoutException, InvalidArgumentException
 from selenium.webdriver.chrome.options import Options
 from seleniumwire import webdriver
 from PyInquirer import prompt
-import colorama
-
-colorama.init()
-
-# Operating system adaptation
-tetra_storage = False
-
-Mac = os.getenv("Apple_PubSub_Socket_Render")
-file_dividers = False
-
-if Mac is None:
-    windows = os.getenv("HOMEDRIVE")
-    if windows:
-        tetra_storage = os.getenv("HOMEDRIVE") + os.getenv("HOMEPATH") + "\\TetraAIO"
-        file_dividers = "\\"
-
-# MAC
-if Mac:
-    tetra_storage = os.getenv("HOME") + "/Applications/TetraAIO"
-    file_dividers = "/"
-
-# Application additions
-# todo: proxy support
-
-# Process additions
-# todo: colors on appended selection options
-# todo: clean up inquirer variables
-
-# Debugs
-
-# TETRA AIO CAPTCHA V2 HARVESTER 1.0.1
 
 # Updates
 version = '1.0.1'
-clear_method = "clear"
 
+colorama.init()
+file_dividers = None
+clear_method = None
+chromedriver_file = None
 
-# -----------------
+# Operating system adaptation
+
+Mac = os.getenv("Apple_PubSub_Socket_Render")
+
+if not Mac:
+    windows = os.getenv("HOMEDRIVE")
+    clear_method = "cls"
+    if windows:
+        file_dividers = "\\"
+
+if Mac:
+    file_dividers = "/"
+    clear_method = "clear"
 
 
 class colors:
@@ -61,24 +46,38 @@ class colors:
     UNDERLINE = '\033[4m'
 
 
-os.system("title Tetra AIO Captcha Harvester by Volt#9540 " + 'v' + version)
+if clear_method == "clear":
+    chromedriver_file = "chromedriver_mac"
+if clear_method == "cls":
+    chromedriver_file = "chromedriver.exe"
+os.system("title CHROME Captcha Harvester by Volt#9540 " + 'v' + version)
 os.system(clear_method)
 dir_path = os.path.dirname(os.path.realpath(__file__))
-chromedriver_path = dir_path + file_dividers + "chromedriver"
+browser_profile_dir = dir_path.replace('recap-harvester', 'browser-profiles' + file_dividers)
+chromedriver_path = dir_path + file_dividers + chromedriver_file
+
+# Application additions
+# todo: proxy support
+
+# CHROME CAPTCHA V2 HARVESTER 1.0.1
+
+localhost = True
 proxy = '47.79.166.136:17102:zxeamn:dkedjj'
+token_count = 2
 
 
-class set_proxy:
-    (IPv4, Port, username, password) = proxy.split(':')
+(IPv4, Port, username, password) = proxy.split(':')
 
-    ip = IPv4 + ':' + Port
+ip = IPv4 + ':' + Port
 
-    proxy_options = {
-        "proxy": {
-            "http": "http://" + username + ":" + password + "@" + ip,
-            "https": "http://" + username + ":" + password + "@" + ip,
-        }
+proxy_options = {
+    "proxy": {
+        "http": "http://" + username + ":" + password + "@" + ip,
+        "https": "http://" + username + ":" + password + "@" + ip,
     }
+}
+if localhost:
+    proxy_options = {}
 
 
 class profile_arguments:
@@ -130,6 +129,15 @@ def question(name, message, choices, q_type):
     return answer
 
 
+def list_search(search_item, list_obj):
+    for list_count in range(len(list_obj)):
+        list_item = list_obj[list_count]
+
+        if list_item == search_item:
+            return True
+    return False
+
+
 def eop(function_driver):
     eop_answer = question(name="End of Process", message="End of process:", choices=['Main Menu', 'Exit'],
                           q_type="list")
@@ -146,7 +154,7 @@ def eop(function_driver):
 
 
 def get_valid_token(function_driver, captcha_type):
-    global request
+    request = None
     for failedVerify in range(100):
         print(colors.CYAN + "Waiting for Captcha..." + colors.END)
 
@@ -171,8 +179,6 @@ def get_valid_token(function_driver, captcha_type):
                 # print(colors.WARNING + "Deleted requests history and searching..." + colors.END)
             else:
                 print(colors.GREEN + 'Valid token found' + colors.END)
-                response_list = response_body.split(',')
-                recaptcha_token = response_list[1]
                 print(recaptcha_token)
                 del function_driver.requests
                 function_driver.refresh()
@@ -181,12 +187,12 @@ def get_valid_token(function_driver, captcha_type):
         except TimeoutError:
             os.system(clear_method)
             function_driver.close()
-            print(colors.FAIL + 'Tetra Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
             menu()
         except TimeoutException:
             os.system(clear_method)
             function_driver.close()
-            print(colors.FAIL + 'Tetra Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
             menu()
         except Exception as exc:
             os.system(clear_method)
@@ -197,16 +203,13 @@ def get_valid_token(function_driver, captcha_type):
 
 # Processes
 def login():
-    global profile_name_input
     try:
-        print(colors.WARNING + 'TETRA AIO GMAIL LOGIN' + colors.END)
+        print(colors.WARNING + 'CHROME GMAIL LOGIN' + colors.END)
         while True:
             profile_name_input = input(colors.CYAN + 'Please enter a profile name: ' + colors.END)
             try:
 
-                print(dir_path)
-                browser_storage_beta = dir_path + profile_name_input
-                browser_storage = browser_storage_beta.replace('recap-harvester', 'browser-profiles' + file_dividers)
+                browser_storage = browser_profile_dir + profile_name_input
 
                 # os.mkdir(browser_storage, 700)
                 profile_arguments.opts.add_argument("user-data-dir=" + browser_storage)
@@ -214,22 +217,21 @@ def login():
                 break
             except FileExistsError:
                 print(colors.FAIL + 'That profile name already exists. Please choose another.' + colors.END)
-        print(chromedriver_path)
-        login_driver = webdriver.Chrome(chrome_options=profile_arguments.opts, seleniumwire_options=set_proxy.proxy_options,
+        login_driver = webdriver.Chrome(options=profile_arguments.opts, seleniumwire_options=proxy_options,
                                         executable_path=chromedriver_path)
-        print(colors.CYAN + "Please enter your login information." + colors.END)
+        print(colors.CYAN + "Enter your login information." + colors.END)
         login_driver.get('https://gmail.com')
         try:
-            login_wait = login_driver.wait_for_request(pat='mail/u/0', timeout=100)
+            login_driver.wait_for_request(pat='mail/u/0', timeout=100)
         except TimeoutError:
             os.system(clear_method)
             login_driver.close()
-            print(colors.FAIL + 'Tetra Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
             menu()
         except TimeoutException:
             os.system(clear_method)
             login_driver.close()
-            print(colors.FAIL + 'Tetra Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
             menu()
 
         print(
@@ -241,39 +243,33 @@ def login():
             colors.FAIL + 'Please make sure you do not have any other browsers open with the same Browser Profile.' + colors.END)
 
 
-def captcha(site, captcha_type, token_count):
-    global driver
-
+def captcha(site, captcha_type):
+    driver = None
     try:
 
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        browser_storage = dir_path.replace('recap-harvester', 'browser-profiles' + file_dividers)
-        browser_profile_list = os.listdir(browser_storage)
+        browser_profile_list = os.listdir(browser_profile_dir)
         if not browser_profile_list:
             os.system(clear_method)
             print(colors.FAIL + "Please create a profile for use in 'Chrome Login'" + colors.END)
             menu()
-        browser_profile_list.append('quick')
-        browser_profile_list.append('none')
-        browser_profile_list.append("Main Menu")
-        profile_name = question(name="Selection", message="Please select a Google Profile:",
+        browser_profile_list.extend(['quick', 'none', 'Main Menu'])
+
+        profile_name = question(name="Selection", message="Browser profile:",
                                 choices=browser_profile_list, q_type="list")
 
-        browser_storage_beta = dir_path + profile_name
-        browser_storage_base = dir_path.replace('recap-harvester', 'browser-profiles' + file_dividers)
-        browser_storage = browser_storage_beta.replace('recap-harvester', 'browser-profiles' + file_dividers)
-        profile_list = str(os.listdir(browser_storage_base))
+        browser_storage = browser_profile_dir + profile_name
+        profile_list = os.listdir(browser_profile_dir)
 
-        profile_found = re.findall(profile_name, profile_list)
+        profile_found = list_search(profile_name, profile_list)
         if profile_found:
             print(colors.GREEN + 'Browser profile Located' + colors.END)
-            profile_arguments.opts.add_argument('user-data-dir=' + browser_storage)
-            driver = webdriver.Chrome(seleniumwire_options=set_proxy.proxy_options, executable_path=chromedriver_path,
+            profile_arguments.opts.add_argument('--user-data-dir=' + browser_storage)
+            driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path,
                                       options=profile_arguments.opts)
 
         elif profile_name == 'none':
             print(colors.GREEN + 'No profile selected' + colors.END)
-            driver = webdriver.Chrome(seleniumwire_options=set_proxy.proxy_options, executable_path=chromedriver_path,
+            driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path,
                                       options=profile_arguments.opts)
 
         elif profile_name == 'quick':
@@ -281,7 +277,7 @@ def captcha(site, captcha_type, token_count):
 
             print(colors.CYAN + "Please enter your login information." + colors.END)
 
-            driver = webdriver.Chrome(seleniumwire_options=set_proxy.proxy_options, executable_path='chromedriver',
+            driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path,
                                       options=profile_arguments.opts)
 
             driver.get('https://gmail.com')
@@ -293,7 +289,7 @@ def captcha(site, captcha_type, token_count):
         else:
             os.system(clear_method)
             print(
-                colors.FAIL + 'Browser profile could not be located. Please make sure you typed in the correct name' + colors.END)
+                colors.FAIL + 'Failed to locate browser profile.' + colors.END)
             menu()
 
         # ReCaptcha V2 [Valid Token] Function Call
@@ -307,7 +303,8 @@ def captcha(site, captcha_type, token_count):
 
             v2_token_list = []
             for v2_token in range(token_count):
-                v2_token_list.append(get_valid_token(driver, captcha_type))
+                g_recaptcha_token = get_valid_token(driver, captcha_type)
+                v2_token_list.append(g_recaptcha_token)
 
         # ReCaptcha V3 [Valid Token] Function Call
 
@@ -396,17 +393,20 @@ def profiles():
             colors.FAIL + 'Please make sure you do not have any other browsers open with the same Browser Profile.' + colors.END)
     except TimeoutError:
         os.system(clear_method)
-        print(colors.FAIL + 'Tetra Harvester timed out. Please restart and try again.' + colors.END)
+        print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
         menu()
     except TimeoutException:
         os.system(clear_method)
-        print(colors.FAIL + 'Tetra Harvester timed out. Please restart and try again.' + colors.END)
+        print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
         menu()
 
 
 def menu():
-    global site_list
-    menu_answer = question(name="Selection", message="Main Menu", choices=['Captcha Harvester', 'Chrome Login', 'Your Browser Profiles', 'Exit'], q_type="list")
+    site_list = None
+
+    menu_answer = question(name="Selection", message="Main Menu",
+                           choices=['Captcha Harvester', 'Chrome Login', 'Your Browser Profiles', 'Exit'],
+                           q_type="list")
 
     if menu_answer == "Chrome Login":
         os.system(clear_method)
@@ -414,9 +414,8 @@ def menu():
 
     if menu_answer == "Captcha Harvester":
 
-        # os.system(clear_method)
-
-        recaptcha_answer = question(name="ReCaptcha", message="Select a ReCaptcha type:", choices=["ReCaptcha V2", "ReCaptcha V3", "Main Menu", "Exit"], q_type="list")
+        recaptcha_answer = question(name="ReCaptcha", message="ReCaptcha type:",
+                                    choices=["ReCaptcha V2", "ReCaptcha V3", "Main Menu", "Exit"], q_type="list")
 
         if recaptcha_answer == "ReCaptcha V2":
             site_list = ['Kith', 'DTLR', 'Demo', 'Main Menu', 'Exit']
@@ -431,9 +430,7 @@ def menu():
             os.system(clear_method)
             sys.exit(1)
 
-        # os.system(clear_method)
-
-        site_answer = question(name="Site", message="Select a site:", choices=site_list, q_type="list")
+        site_answer = question(name="Site", message="Site:", choices=site_list, q_type="list")
 
         if site_answer == 'Main Menu':
             os.system(clear_method)
@@ -441,10 +438,9 @@ def menu():
         elif site_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
-        # os.system(clear_method)
 
         # Call Captcha Function
-        captcha(site_answer, recaptcha_answer, 2)
+        captcha(site_answer, recaptcha_answer)
 
     if menu_answer == 'Your Browser Profiles':
         os.system(clear_method)
@@ -457,5 +453,5 @@ def menu():
 
 if __name__ == '__main__':
     os.system(clear_method)
-    print(colors.CYAN + colors.BOLD + 'WELCOME TO THE TETRA AIO CAPTCHA HARVESTER' + colors.END)
+    print(colors.CYAN + colors.BOLD + 'WELCOME TO THE CHROME CAPTCHA HARVESTER' + colors.END)
     menu()
