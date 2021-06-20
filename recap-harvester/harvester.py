@@ -187,12 +187,12 @@ def get_valid_token(function_driver, captcha_type):
         except TimeoutError:
             os.system(clear_method)
             function_driver.close()
-            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
             menu()
         except TimeoutException:
             os.system(clear_method)
             function_driver.close()
-            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
             menu()
         except Exception as exc:
             os.system(clear_method)
@@ -206,7 +206,7 @@ def login():
     try:
         print(colors.WARNING + 'CHROME GMAIL LOGIN' + colors.END)
         while True:
-            profile_name_input = input(colors.CYAN + 'Please enter a profile name: ' + colors.END)
+            profile_name_input = input(colors.CYAN + 'Profile name: ' + colors.END)
             try:
 
                 browser_storage = browser_profile_dir + profile_name_input
@@ -216,7 +216,7 @@ def login():
                 print(browser_storage)
                 break
             except FileExistsError:
-                print(colors.FAIL + 'That profile name already exists. Please choose another.' + colors.END)
+                print(colors.FAIL + 'That profile name already exists. Choose another.' + colors.END)
         login_driver = webdriver.Chrome(options=profile_arguments.opts, seleniumwire_options=proxy_options,
                                         executable_path=chromedriver_path)
         print(colors.CYAN + "Enter your login information." + colors.END)
@@ -226,12 +226,12 @@ def login():
         except TimeoutError:
             os.system(clear_method)
             login_driver.close()
-            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
             menu()
         except TimeoutException:
             os.system(clear_method)
             login_driver.close()
-            print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
+            print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
             menu()
 
         print(
@@ -240,7 +240,7 @@ def login():
         eop(login_driver)
     except InvalidArgumentException:
         print(
-            colors.FAIL + 'Please make sure you do not have any other browsers open with the same Browser Profile.' + colors.END)
+            colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
 
 
 def captcha(site, captcha_type):
@@ -250,7 +250,7 @@ def captcha(site, captcha_type):
         browser_profile_list = os.listdir(browser_profile_dir)
         if not browser_profile_list:
             os.system(clear_method)
-            print(colors.FAIL + "Please create a profile for use in 'Chrome Login'" + colors.END)
+            print(colors.FAIL + "Create a profile for use in 'Chrome Login'" + colors.END)
             menu()
         browser_profile_list.extend(['quick', 'none', 'Main Menu'])
 
@@ -275,7 +275,7 @@ def captcha(site, captcha_type):
         elif profile_name == 'quick':
             print(colors.GREEN + 'Quick login selected' + colors.END)
 
-            print(colors.CYAN + "Please enter your login information." + colors.END)
+            print(colors.CYAN + "Enter your login information." + colors.END)
 
             driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path,
                                       options=profile_arguments.opts)
@@ -323,7 +323,7 @@ def captcha(site, captcha_type):
     except InvalidArgumentException:
         os.system(clear_method)
         print(
-            colors.FAIL + 'Please make sure you do not have any other browsers open with the same Browser Profile.' + colors.END)
+            colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
         driver.close()
         menu()
 
@@ -331,12 +331,8 @@ def captcha(site, captcha_type):
 def profiles():
     try:
         print("Select a Browser Profile to edit.")
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        browser_storage = dir_path.replace('recap-harvester',
-                                           'browser-profiles' + file_dividers)
-        browser_profile_list = os.listdir(browser_storage)
-        browser_profile_list.append('Main Menu')
-        browser_profile_list.append('Exit')
+        browser_profile_list = os.listdir(browser_profile_dir)
+        browser_profile_list.extend(['Main Menu', 'Exit'])
 
         # Choose browser profile to edit list
 
@@ -345,10 +341,10 @@ def profiles():
         if not profile_answer:
             os.system(clear_method)
             menu()
-        if profile_answer == colors.CYAN + 'Main Menu' + colors.END:
+        if profile_answer == 'Main Menu':
             os.system(clear_method)
             menu()
-        if profile_answer == colors.CYAN + 'Exit' + colors.END:
+        if profile_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
 
@@ -357,47 +353,46 @@ def profiles():
 
         # Edit options
         edit_answer = question(name="EditOptions", message="Select an edit option:",
-                               choices=['Change Name', colors.FAIL + 'Delete' + colors.END,
-                                        colors.CYAN + 'Go back' + colors.END], q_type="list")
+                               choices=['Change Name', 'Delete', 'Go back'], q_type="list")
 
-        if edit_answer == colors.CYAN + 'Go back' + colors.END:
+        if edit_answer == 'Go back':
             os.system(clear_method)
             profiles()
         if edit_answer == 'Change Name':
             os.system(clear_method)
             print(colors.WARNING + profile_answer + colors.END)
-            for RenameRetry in range(100):
+            while True:
                 try:
-                    Rename_input = input(colors.CYAN + 'Please enter a new name for the browser profile: ' + colors.END)
+                    Rename_input = input(colors.CYAN + 'Enter a new name for the browser profile: ' + colors.END)
 
-                    OG_path = browser_storage + profile_answer
-                    Rename_path = browser_storage + Rename_input
+                    og_path = browser_profile_dir + profile_answer
+                    rename_path = browser_profile_dir + Rename_input
 
                     # Rename
-                    os.rename(OG_path, Rename_path)
+                    os.rename(og_path, rename_path)
 
                     print(
                         colors.GREEN + 'Browser Profile: "' + profile_answer + '" has been renamed to: "' + Rename_input + '"' + colors.END)
                     break
 
                 except FileExistsError:
-                    print(colors.FAIL + 'That profile name already exists. Please choose another.' + colors.END)
+                    print(colors.FAIL + 'That profile name already exists. Choose another.' + colors.END)
                     continue
-        if edit_answer == colors.FAIL + 'Delete' + colors.END:
-            shutil.rmtree(browser_storage + profile_answer)
+        if edit_answer == 'Delete':
+            shutil.rmtree(browser_profile_dir + profile_answer)
             print(colors.GREEN + 'Browser Profile: "' + profile_answer + '" has been deleted.' + colors.END)
 
         eop(None)
     except InvalidArgumentException:
         print(
-            colors.FAIL + 'Please make sure you do not have any other browsers open with the same Browser Profile.' + colors.END)
+            colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
     except TimeoutError:
         os.system(clear_method)
-        print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
+        print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
         menu()
     except TimeoutException:
         os.system(clear_method)
-        print(colors.FAIL + 'Chrome Harvester timed out. Please restart and try again.' + colors.END)
+        print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
         menu()
 
 
