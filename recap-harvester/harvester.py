@@ -53,9 +53,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 browser_profile_dir = dir_path.replace('recap-harvester', 'browser-profiles' + file_dividers)
 chromedriver_path = dir_path + file_dividers + chromedriver_file
 
-# Application additions
-# todo: proxy support
-
 # CHROME CAPTCHA V2 HARVESTER 1.0.1
 
 localhost = True
@@ -75,9 +72,6 @@ proxy_options = {
 }
 if localhost:
     proxy_options = {}
-
-print(proxy_options)
-time.sleep(3)
 
 
 def profile_arguments():
@@ -387,7 +381,7 @@ def profiles(web_driver):
             shutil.rmtree(browser_profile_dir + profile_answer)
             print(colors.GREEN + 'Browser profile: "' + profile_answer + '" has been deleted.' + colors.END)
 
-        eop(None)
+        eop(web_driver)
     except InvalidArgumentException:
         print(
             colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
