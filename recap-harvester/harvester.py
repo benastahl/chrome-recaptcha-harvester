@@ -6,7 +6,7 @@ import sys
 import time
 import colorama
 
-from selenium.common.exceptions import TimeoutException, InvalidArgumentException
+from selenium.common.exceptions import TimeoutException, InvalidArgumentException, WebDriverException
 from selenium.webdriver.chrome.options import Options
 from seleniumwire import webdriver
 from PyInquirer import prompt
@@ -26,12 +26,13 @@ Mac = os.getenv("Apple_PubSub_Socket_Render")
 if not Mac:
     windows = os.getenv("HOMEDRIVE")
     clear_method = "cls"
-    if windows:
-        file_dividers = "\\"
+    chromedriver_file = "chromedriver.exe"
+    file_dividers = "\\"
 
 if Mac:
     file_dividers = "/"
     clear_method = "clear"
+    chromedriver_file = "chromedriver_mac"
 
 
 class colors:
@@ -46,10 +47,6 @@ class colors:
     UNDERLINE = '\033[4m'
 
 
-if clear_method == "clear":
-    chromedriver_file = "chromedriver_mac"
-if clear_method == "cls":
-    chromedriver_file = "chromedriver.exe"
 os.system("title CHROME Captcha Harvester by Volt#9540 " + 'v' + version)
 os.system(clear_method)
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -79,6 +76,9 @@ proxy_options = {
 if localhost:
     proxy_options = {}
 
+print(proxy_options)
+time.sleep(3)
+
 
 class profile_arguments:
     opts = Options()
@@ -98,7 +98,7 @@ class profile_arguments:
     opts.add_experimental_option('excludeSwitches', ['enable-logging'])
 
 
-def question(name, message, choices, q_type):
+def question(web_driver, name, message, choices, q_type):
     answer = None
     questions = None
 
@@ -124,7 +124,7 @@ def question(name, message, choices, q_type):
         answer = prompt(questions)[name]
     except KeyError:
         os.system(clear_method)
-        menu()
+        menu(web_driver)
         pass
     return answer
 
@@ -139,13 +139,13 @@ def list_search(search_item, list_obj):
 
 
 def eop(function_driver):
-    eop_answer = question(name="End of Process", message="End of process:", choices=['Main Menu', 'Exit'],
+    eop_answer = question(function_driver, name="End of Process", message="End of process:", choices=['Main Menu', 'Exit'],
                           q_type="list")
     if eop_answer == 'Main Menu':
         os.system(clear_method)
-        if function_driver:
-            function_driver.close()
-        menu()
+        # if function_driver:
+        #     function_driver.close()
+        menu(function_driver)
     if eop_answer == 'Exit':
         os.system(clear_method)
         if function_driver:
@@ -188,73 +188,78 @@ def get_valid_token(function_driver, captcha_type):
             os.system(clear_method)
             function_driver.close()
             print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu()
+            menu(function_driver)
         except TimeoutException:
             os.system(clear_method)
             function_driver.close()
             print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu()
+            menu(function_driver)
         except Exception as exc:
             os.system(clear_method)
             function_driver.close()
-            print("Error occured:", exc)
+            print("Error occurred:", exc)
     return None
 
 
 # Processes
-def login():
+def login(web_driver):
     try:
         print(colors.WARNING + 'CHROME GMAIL LOGIN' + colors.END)
+        web_driver.close()
         while True:
             profile_name_input = input(colors.CYAN + 'Profile name: ' + colors.END)
             try:
 
                 browser_storage = browser_profile_dir + profile_name_input
-
-                # os.mkdir(browser_storage, 700)
+                print(colors.CYAN + "Opening with new user data..." + colors.END)
                 profile_arguments.opts.add_argument("user-data-dir=" + browser_storage)
-                print(browser_storage)
+
+                web_driver = webdriver.Chrome(options=profile_arguments.opts, seleniumwire_options=proxy_options,
+                                              executable_path=chromedriver_path)
+
                 break
             except FileExistsError:
                 print(colors.FAIL + 'That profile name already exists. Choose another.' + colors.END)
-        login_driver = webdriver.Chrome(options=profile_arguments.opts, seleniumwire_options=proxy_options,
-                                        executable_path=chromedriver_path)
+            except WebDriverException:
+                print(colors.FAIL + "Failed to create new browser profile. Try a different name." + colors.END)
+
         print(colors.CYAN + "Enter your login information." + colors.END)
-        login_driver.get('https://gmail.com')
+        web_driver.get('https://gmail.com')
         try:
-            login_driver.wait_for_request(pat='mail/u/0', timeout=100)
+            web_driver.wait_for_request(pat='mail/u/0', timeout=100)
         except TimeoutError:
             os.system(clear_method)
-            login_driver.close()
+            web_driver.close()
             print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu()
+            menu(web_driver)
         except TimeoutException:
             os.system(clear_method)
-            login_driver.close()
+            web_driver.close()
             print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu()
+            menu(web_driver)
 
         print(
             colors.GREEN + 'Profile Save "' + colors.BOLD + colors.UNDERLINE + profile_name_input + colors.END + colors.GREEN + '" completed!' + colors.END)
 
-        eop(login_driver)
+        eop(web_driver)
     except InvalidArgumentException:
         print(
             colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
+    except WebDriverException:
+        print(colors.FAIL + "Invalid browser profile name. Enter a new name." + colors.END)
 
 
-def captcha(site, captcha_type):
-    driver = None
+def captcha(web_driver, site, captcha_type):
     try:
 
         browser_profile_list = os.listdir(browser_profile_dir)
         if not browser_profile_list:
             os.system(clear_method)
             print(colors.FAIL + "Create a profile for use in 'Chrome Login'" + colors.END)
-            menu()
+            menu(web_driver)
         browser_profile_list.extend(['quick', 'none', 'Main Menu'])
 
-        profile_name = question(name="Selection", message="Browser profile:",
+        profile_name = question(web_driver, name="Selection", message="Browser profile:",
                                 choices=browser_profile_list, q_type="list")
 
         browser_storage = browser_profile_dir + profile_name
@@ -262,48 +267,44 @@ def captcha(site, captcha_type):
 
         profile_found = list_search(profile_name, profile_list)
         if profile_found:
-            print(colors.GREEN + 'Browser profile Located' + colors.END)
+            print(colors.GREEN + 'Browser profile located' + colors.END)
+            print(colors.CYAN + "Opening with new user data..." + colors.END)
             profile_arguments.opts.add_argument('--user-data-dir=' + browser_storage)
-            driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path,
-                                      options=profile_arguments.opts)
+            web_driver.close()
+            web_driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path, options=profile_arguments.opts)
 
         elif profile_name == 'none':
             print(colors.GREEN + 'No profile selected' + colors.END)
-            driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path,
-                                      options=profile_arguments.opts)
 
         elif profile_name == 'quick':
             print(colors.GREEN + 'Quick login selected' + colors.END)
 
             print(colors.CYAN + "Enter your login information." + colors.END)
 
-            driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path,
-                                      options=profile_arguments.opts)
-
-            driver.get('https://gmail.com')
-            driver.wait_for_request(pat='mail/u/0', timeout=100)
+            web_driver.get('https://gmail.com')
+            web_driver.wait_for_request(pat='mail/u/0', timeout=100)
 
         elif profile_name == 'Main Menu':
             os.system(clear_method)
-            menu()
+            menu(web_driver)
         else:
             os.system(clear_method)
             print(
                 colors.FAIL + 'Failed to locate browser profile.' + colors.END)
-            menu()
+            menu(web_driver)
 
         # ReCaptcha V2 [Valid Token] Function Call
 
         if captcha_type == "ReCaptcha V2":
 
             if site == "Demo":
-                driver.get("https://www.google.com/recaptcha/api2/demo")
+                web_driver.get("https://www.google.com/recaptcha/api2/demo")
             if site != "Demo":
-                driver.get("https://%s.com/checkpoint" % site)
+                web_driver.get("https://%s.com/checkpoint" % site)
 
             v2_token_list = []
             for v2_token in range(token_count):
-                g_recaptcha_token = get_valid_token(driver, captcha_type)
+                g_recaptcha_token = get_valid_token(web_driver, captcha_type)
                 v2_token_list.append(g_recaptcha_token)
 
         # ReCaptcha V3 [Valid Token] Function Call
@@ -311,39 +312,40 @@ def captcha(site, captcha_type):
         if captcha_type == "ReCaptcha V3":
 
             if site == "Demo":
-                driver.get("https://login.wordpress.org/wp-login.php")
+                web_driver.get("https://login.wordpress.org/wp-login.php")
             if site != "Demo":
-                driver.get("google.com")
+                web_driver.get("google.com")
 
             v3_token_list = []
             for v3_token in range(token_count):
-                v3_token_list.append(get_valid_token(driver, captcha_type))
+                v3_token_list.append(get_valid_token(web_driver, captcha_type))
+                print(v3_token_list)
 
-        eop(driver)
+        eop(web_driver)
     except InvalidArgumentException:
         os.system(clear_method)
         print(
             colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
-        driver.close()
-        menu()
+        web_driver.close()
+        menu(web_driver)
 
 
-def profiles():
+def profiles(web_driver):
     try:
-        print("Select a Browser Profile to edit.")
+        print("Select a browser profile to edit.")
         browser_profile_list = os.listdir(browser_profile_dir)
         browser_profile_list.extend(['Main Menu', 'Exit'])
 
         # Choose browser profile to edit list
 
-        profile_answer = question(name="Browser Profile List", message="Select a browser profile:",
+        profile_answer = question(web_driver, name="Browser Profile List", message="Select a browser profile:",
                                   choices=browser_profile_list, q_type="list")
         if not profile_answer:
             os.system(clear_method)
-            menu()
+            menu(web_driver)
         if profile_answer == 'Main Menu':
             os.system(clear_method)
-            menu()
+            menu(web_driver)
         if profile_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
@@ -352,13 +354,13 @@ def profiles():
         print(colors.WARNING + colors.BOLD + colors.UNDERLINE + profile_answer + colors.END)
 
         # Edit options
-        edit_answer = question(name="EditOptions", message="Select an edit option:",
-                               choices=['Change Name', 'Delete', 'Go back'], q_type="list")
+        edit_answer = question(web_driver, name="EditOptions", message="Select an edit option:",
+                               choices=['Change name', 'Delete', 'Go back'], q_type="list")
 
         if edit_answer == 'Go back':
             os.system(clear_method)
-            profiles()
-        if edit_answer == 'Change Name':
+            profiles(web_driver)
+        if edit_answer == 'Change name':
             os.system(clear_method)
             print(colors.WARNING + profile_answer + colors.END)
             while True:
@@ -380,7 +382,7 @@ def profiles():
                     continue
         if edit_answer == 'Delete':
             shutil.rmtree(browser_profile_dir + profile_answer)
-            print(colors.GREEN + 'Browser Profile: "' + profile_answer + '" has been deleted.' + colors.END)
+            print(colors.GREEN + 'Browser profile: "' + profile_answer + '" has been deleted.' + colors.END)
 
         eop(None)
     except InvalidArgumentException:
@@ -389,27 +391,27 @@ def profiles():
     except TimeoutError:
         os.system(clear_method)
         print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-        menu()
+        menu(web_driver)
     except TimeoutException:
         os.system(clear_method)
         print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-        menu()
+        menu(web_driver)
 
 
-def menu():
+def menu(web_driver):
     site_list = None
 
-    menu_answer = question(name="Selection", message="Main Menu",
+    menu_answer = question(web_driver, name="Selection", message="Main Menu",
                            choices=['Captcha Harvester', 'Chrome Login', 'Your Browser Profiles', 'Exit'],
                            q_type="list")
 
     if menu_answer == "Chrome Login":
         os.system(clear_method)
-        login()
+        login(web_driver)
 
     if menu_answer == "Captcha Harvester":
 
-        recaptcha_answer = question(name="ReCaptcha", message="ReCaptcha type:",
+        recaptcha_answer = question(web_driver, name="ReCaptcha", message="ReCaptcha type:",
                                     choices=["ReCaptcha V2", "ReCaptcha V3", "Main Menu", "Exit"], q_type="list")
 
         if recaptcha_answer == "ReCaptcha V2":
@@ -420,26 +422,26 @@ def menu():
 
         if recaptcha_answer == 'Main Menu':
             os.system(clear_method)
-            menu()
+            menu(web_driver)
         elif recaptcha_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
 
-        site_answer = question(name="Site", message="Site:", choices=site_list, q_type="list")
+        site_answer = question(web_driver, name="Site", message="Site:", choices=site_list, q_type="list")
 
         if site_answer == 'Main Menu':
             os.system(clear_method)
-            menu()
+            menu(web_driver)
         elif site_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
 
         # Call Captcha Function
-        captcha(site_answer, recaptcha_answer)
+        captcha(web_driver, site_answer, recaptcha_answer)
 
     if menu_answer == 'Your Browser Profiles':
         os.system(clear_method)
-        profiles()
+        profiles(web_driver)
 
     if menu_answer == 'Exit':
         os.system(clear_method)
@@ -449,4 +451,6 @@ def menu():
 if __name__ == '__main__':
     os.system(clear_method)
     print(colors.CYAN + colors.BOLD + 'WELCOME TO THE CHROME CAPTCHA HARVESTER' + colors.END)
-    menu()
+    driver = webdriver.Chrome(options=profile_arguments.opts, seleniumwire_options=proxy_options, executable_path=chromedriver_path)
+    driver.get("http://127.0.0.1:")
+    menu(driver)
