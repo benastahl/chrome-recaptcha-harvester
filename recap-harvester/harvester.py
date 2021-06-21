@@ -80,7 +80,7 @@ print(proxy_options)
 time.sleep(3)
 
 
-class profile_arguments:
+def profile_arguments():
     opts = Options()
     opts.add_argument('--allow-insecure-localhost')
     opts.add_argument('--ignore-ssl-errors')
@@ -96,6 +96,7 @@ class profile_arguments:
     opts.add_argument('--window-size=500,645')
     opts.add_argument('--allow-profiles-outside-user-dir')
     opts.add_experimental_option('excludeSwitches', ['enable-logging'])
+    return opts
 
 
 def question(web_driver, name, message, choices, q_type):
@@ -212,9 +213,10 @@ def login(web_driver):
 
                 browser_storage = browser_profile_dir + profile_name_input
                 print(colors.CYAN + "Opening with new user data..." + colors.END)
-                profile_arguments.opts.add_argument("user-data-dir=" + browser_storage)
+                login_args = profile_arguments()
+                login_args.add_argument("user-data-dir=" + browser_storage)
 
-                web_driver = webdriver.Chrome(options=profile_arguments.opts, seleniumwire_options=proxy_options,
+                web_driver = webdriver.Chrome(options=login_args, seleniumwire_options=proxy_options,
                                               executable_path=chromedriver_path)
 
                 break
@@ -269,9 +271,10 @@ def captcha(web_driver, site, captcha_type):
         if profile_found:
             print(colors.GREEN + 'Browser profile located' + colors.END)
             print(colors.CYAN + "Opening with new user data..." + colors.END)
-            profile_arguments.opts.add_argument('--user-data-dir=' + browser_storage)
+            captcha_args = profile_arguments()
+            captcha_args.add_argument('--user-data-dir=' + browser_storage)
             web_driver.close()
-            web_driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path, options=profile_arguments.opts)
+            web_driver = webdriver.Chrome(seleniumwire_options=proxy_options, executable_path=chromedriver_path, options=captcha_args)
 
         elif profile_name == 'none':
             print(colors.GREEN + 'No profile selected' + colors.END)
@@ -399,6 +402,9 @@ def profiles(web_driver):
 
 
 def menu(web_driver):
+    web_driver.close()
+    web_driver = webdriver.Chrome(options=profile_arguments(), seleniumwire_options=proxy_options, executable_path=chromedriver_path)
+    web_driver.get("http://127.0.0.1:8000")
     site_list = None
 
     menu_answer = question(web_driver, name="Selection", message="Main Menu",
@@ -451,6 +457,6 @@ def menu(web_driver):
 if __name__ == '__main__':
     os.system(clear_method)
     print(colors.CYAN + colors.BOLD + 'WELCOME TO THE CHROME CAPTCHA HARVESTER' + colors.END)
-    driver = webdriver.Chrome(options=profile_arguments.opts, seleniumwire_options=proxy_options, executable_path=chromedriver_path)
-    driver.get("http://127.0.0.1:")
+    driver = webdriver.Chrome(options=profile_arguments(), seleniumwire_options=proxy_options, executable_path=chromedriver_path)
+    driver.get("http://127.0.0.1:8000/loading")
     menu(driver)
