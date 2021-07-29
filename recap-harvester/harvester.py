@@ -18,6 +18,7 @@ colorama.init()
 file_dividers = None
 clear_method = None
 chromedriver_file = None
+proxy_options = None
 
 # Operating system adaptation
 
@@ -53,25 +54,28 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 browser_profile_dir = dir_path.replace('recap-harvester', 'browser-profiles' + file_dividers)
 chromedriver_path = dir_path + file_dividers + chromedriver_file
 
+# Application additions
+# todo: proxy support
+
 # CHROME CAPTCHA V2 HARVESTER 1.0.1
 
 localhost = True
 proxy = '47.79.166.136:17102:zxeamn:dkedjj'
-token_count = 2
+token_count = 1
 
 
 (IPv4, Port, username, password) = proxy.split(':')
 
 ip = IPv4 + ':' + Port
 
-proxy_options = {
-    "proxy": {
-        "http": "http://" + username + ":" + password + "@" + ip,
-        "https": "http://" + username + ":" + password + "@" + ip,
+
+if not localhost:
+    proxy_options = {
+        "proxy": {
+            "http": "http://" + username + ":" + password + "@" + ip,
+            "https": "http://" + username + ":" + password + "@" + ip,
+        }
     }
-}
-if localhost:
-    proxy_options = {}
 
 
 def profile_arguments():
@@ -119,28 +123,19 @@ def question(web_driver, name, message, choices, q_type):
         answer = prompt(questions)[name]
     except KeyError:
         os.system(clear_method)
-        menu(web_driver)
+        menu(web_driver, reset_browser=True)
         pass
     return answer
 
 
-def list_search(search_item, list_obj):
-    for list_count in range(len(list_obj)):
-        list_item = list_obj[list_count]
-
-        if list_item == search_item:
-            return True
-    return False
-
-
-def eop(function_driver):
+def eop(function_driver, reset_browser):
     eop_answer = question(function_driver, name="End of Process", message="End of process:", choices=['Main Menu', 'Exit'],
                           q_type="list")
     if eop_answer == 'Main Menu':
         os.system(clear_method)
         # if function_driver:
         #     function_driver.close()
-        menu(function_driver)
+        menu(function_driver, reset_browser=reset_browser)
     if eop_answer == 'Exit':
         os.system(clear_method)
         if function_driver:
@@ -170,30 +165,21 @@ def get_valid_token(function_driver, captcha_type):
             if invalid_token:
                 print(colors.FAIL + "Invalid token, looking for valid..." + colors.END)
                 del function_driver.requests
-                print(recaptcha_token)
-                # print(colors.WARNING + "Deleted requests history and searching..." + colors.END)
             else:
                 print(colors.GREEN + 'Valid token found' + colors.END)
-                print(recaptcha_token)
                 del function_driver.requests
                 function_driver.refresh()
 
                 return recaptcha_token
-        except TimeoutError:
+        except TimeoutError or TimeoutException:
             os.system(clear_method)
             function_driver.close()
             print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu(function_driver)
-        except TimeoutException:
-            os.system(clear_method)
-            function_driver.close()
-            print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu(function_driver)
+            menu(function_driver, reset_browser=True)
         except Exception as exc:
             os.system(clear_method)
             function_driver.close()
             print("Error occurred:", exc)
-    return None
 
 
 # Processes
@@ -223,26 +209,20 @@ def login(web_driver):
         web_driver.get('https://gmail.com')
         try:
             web_driver.wait_for_request(pat='mail/u/0', timeout=100)
-        except TimeoutError:
+        except TimeoutError or TimeoutException:
             os.system(clear_method)
             web_driver.close()
             print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu(web_driver)
-        except TimeoutException:
-            os.system(clear_method)
-            web_driver.close()
-            print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-            menu(web_driver)
-
+            menu(web_driver, reset_browser=True)
         print(
             colors.GREEN + 'Profile Save "' + colors.BOLD + colors.UNDERLINE + profile_name_input + colors.END + colors.GREEN + '" completed!' + colors.END)
 
-        eop(web_driver)
+        web_driver.get("http://127.0.0.1:8000")
+        eop(web_driver, reset_browser=True)
     except InvalidArgumentException:
         print(
             colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
-    except WebDriverException:
-        print(colors.FAIL + "Invalid browser profile name. Enter a new name." + colors.END)
+        menu(web_driver, reset_browser=False)
 
 
 def captcha(web_driver, site, captcha_type):
@@ -252,7 +232,7 @@ def captcha(web_driver, site, captcha_type):
         if not browser_profile_list:
             os.system(clear_method)
             print(colors.FAIL + "Create a profile for use in 'Chrome Login'" + colors.END)
-            menu(web_driver)
+            menu(web_driver, reset_browser=False)
         browser_profile_list.extend(['quick', 'none', 'Main Menu'])
 
         profile_name = question(web_driver, name="Selection", message="Browser profile:",
@@ -261,8 +241,7 @@ def captcha(web_driver, site, captcha_type):
         browser_storage = browser_profile_dir + profile_name
         profile_list = os.listdir(browser_profile_dir)
 
-        profile_found = list_search(profile_name, profile_list)
-        if profile_found:
+        if profile_name in profile_list:
             print(colors.GREEN + 'Browser profile located' + colors.END)
             print(colors.CYAN + "Opening with new user data..." + colors.END)
             captcha_args = profile_arguments()
@@ -283,12 +262,12 @@ def captcha(web_driver, site, captcha_type):
 
         elif profile_name == 'Main Menu':
             os.system(clear_method)
-            menu(web_driver)
+            menu(web_driver, reset_browser=True)
         else:
             os.system(clear_method)
             print(
                 colors.FAIL + 'Failed to locate browser profile.' + colors.END)
-            menu(web_driver)
+            menu(web_driver, reset_browser=True)
 
         # ReCaptcha V2 [Valid Token] Function Call
 
@@ -316,15 +295,15 @@ def captcha(web_driver, site, captcha_type):
             v3_token_list = []
             for v3_token in range(token_count):
                 v3_token_list.append(get_valid_token(web_driver, captcha_type))
-                print(v3_token_list)
 
-        eop(web_driver)
+        web_driver.get("http://127.0.0.1:8000")
+        eop(web_driver, reset_browser=True)
     except InvalidArgumentException:
         os.system(clear_method)
         print(
             colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
         web_driver.close()
-        menu(web_driver)
+        menu(web_driver, reset_browser=True)
 
 
 def profiles(web_driver):
@@ -339,10 +318,10 @@ def profiles(web_driver):
                                   choices=browser_profile_list, q_type="list")
         if not profile_answer:
             os.system(clear_method)
-            menu(web_driver)
+            menu(web_driver, reset_browser=False)
         if profile_answer == 'Main Menu':
             os.system(clear_method)
-            menu(web_driver)
+            menu(web_driver, reset_browser=False)
         if profile_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
@@ -381,23 +360,22 @@ def profiles(web_driver):
             shutil.rmtree(browser_profile_dir + profile_answer)
             print(colors.GREEN + 'Browser profile: "' + profile_answer + '" has been deleted.' + colors.END)
 
-        eop(web_driver)
+        eop(web_driver, reset_browser=False)
     except InvalidArgumentException:
         print(
             colors.FAIL + 'Make sure you do not have any browsers open with the same browser profile.' + colors.END)
-    except TimeoutError:
+    except TimeoutError or TimeoutException:
         os.system(clear_method)
         print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-        menu(web_driver)
-    except TimeoutException:
-        os.system(clear_method)
-        print(colors.FAIL + 'Chrome Harvester timed out. Restart and try again.' + colors.END)
-        menu(web_driver)
+        menu(web_driver, reset_browser=True)
 
 
-def menu(web_driver):
-    web_driver.close()
-    web_driver = webdriver.Chrome(options=profile_arguments(), seleniumwire_options=proxy_options, executable_path=chromedriver_path)
+def menu(web_driver, reset_browser):
+    if reset_browser:
+        web_driver.get("http://127.0.0.1:8000/reset")
+        time.sleep(2)
+        web_driver.close()
+        web_driver = webdriver.Chrome(options=profile_arguments(), seleniumwire_options=proxy_options, executable_path=chromedriver_path)
     web_driver.get("http://127.0.0.1:8000")
     site_list = None
 
@@ -422,7 +400,7 @@ def menu(web_driver):
 
         if recaptcha_answer == 'Main Menu':
             os.system(clear_method)
-            menu(web_driver)
+            menu(web_driver, reset_browser=True)
         elif recaptcha_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
@@ -431,7 +409,7 @@ def menu(web_driver):
 
         if site_answer == 'Main Menu':
             os.system(clear_method)
-            menu(web_driver)
+            menu(web_driver, reset_browser=True)
         elif site_answer == 'Exit':
             os.system(clear_method)
             sys.exit(1)
@@ -445,7 +423,8 @@ def menu(web_driver):
 
     if menu_answer == 'Exit':
         os.system(clear_method)
-        sys.exit(1)
+        web_driver.close()
+        exit(1)
 
 
 if __name__ == '__main__':
@@ -453,4 +432,4 @@ if __name__ == '__main__':
     print(colors.CYAN + colors.BOLD + 'WELCOME TO THE CHROME CAPTCHA HARVESTER' + colors.END)
     driver = webdriver.Chrome(options=profile_arguments(), seleniumwire_options=proxy_options, executable_path=chromedriver_path)
     driver.get("http://127.0.0.1:8000/loading")
-    menu(driver)
+    menu(driver, reset_browser=False)
