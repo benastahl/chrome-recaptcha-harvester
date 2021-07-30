@@ -11,9 +11,6 @@ from selenium.webdriver.chrome.options import Options
 from seleniumwire import webdriver
 from PyInquirer import prompt
 
-# Updates
-version = '1.0.1'
-
 colorama.init()
 file_dividers = None
 clear_method = None
@@ -48,16 +45,13 @@ class colors:
     UNDERLINE = '\033[4m'
 
 
-os.system("title CHROME Captcha Harvester by Volt#9540 " + 'v' + version)
+os.system("title CHROME Captcha Harvester")
 os.system(clear_method)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 browser_profile_dir = dir_path.replace('recap-harvester', 'browser-profiles' + file_dividers)
 chromedriver_path = dir_path + file_dividers + chromedriver_file
 
-# Application additions
-# todo: proxy support
-
-# CHROME CAPTCHA V2 HARVESTER 1.0.1
+# CHROME CAPTCHA V2 HARVESTER
 
 localhost = True
 proxy = '47.79.166.136:17102:zxeamn:dkedjj'
