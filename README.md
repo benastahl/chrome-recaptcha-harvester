@@ -15,6 +15,7 @@ If you have questions or need help setting up, please join the discord [here](ht
 
 ### Notes:
 ##
+You may need to update chromedriver if out of date. 
 Localhost is enabled (True) as default.
 token_count (the amount of valid recaptcha tokens you want) is set to 1 as default.
 ## Setup
