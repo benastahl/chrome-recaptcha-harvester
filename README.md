@@ -1,5 +1,5 @@
 # Chrome Captcha Harvester
-####_Created by Volt#9540_
+_Created by Volt#9540_
 
 #### **The harvester allows you to collect `g_recaptcha_tokens` for use in your projects.**
 ### Discord
