@@ -19,18 +19,18 @@ proxy_options = None
 
 # Operating system adaptation
 
-Mac = os.getenv("Apple_PubSub_Socket_Render")
+if sys.platform == "darwin":
+    # OS X
+    file_dividers = "/"
+    clear_method = "clear"
+    chromedriver_file = "chromedriver_mac"
 
-if not Mac:
+elif sys.platform == "win32":
+    # Windows
     windows = os.getenv("HOMEDRIVE")
     clear_method = "cls"
     chromedriver_file = "chromedriver.exe"
     file_dividers = "\\"
-
-if Mac:
-    file_dividers = "/"
-    clear_method = "clear"
-    chromedriver_file = "chromedriver_mac"
 
 
 class colors:
