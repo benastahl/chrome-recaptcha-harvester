@@ -36,6 +36,9 @@ In terminal: `python manage.py runserver`
 
 This will start your local Django server, which the harvester uses to create a "Waiting for Captcha" page.
 
+### Step 3 (run harvester):
+Enter the harvester.py directory and run `python harvester.py` inside the terminal.
+
 ##
 ### Chrome Login
 #### The `Chrome Login` feature allows you to login to your gmail accounts and save them as browser profiles for later use.
