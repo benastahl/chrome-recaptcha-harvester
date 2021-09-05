@@ -13,6 +13,10 @@ elif sys.platform == "win32":
     # Windows
     file_dividers = "\\"
 
+elif sys.platform.startswith("linux"):
+    # Linux
+    file_dividers = "/"
+
 # Create your views here.
 template_dir = os.path.dirname(os.path.dirname(__file__)) + file_dividers + "server_app" + file_dividers + "templates" + file_dividers + "server_app" + file_dividers
 

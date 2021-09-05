@@ -32,6 +32,12 @@ elif sys.platform == "win32":
     chromedriver_file = "chromedriver.exe"
     file_dividers = "\\"
 
+elif sys.platform.startswith("linux"):
+    # Linux
+    clear_method = "clear"
+    chromedriver_file = "chromedriver_linux"
+    file_dividers = "/"
+
 
 class colors:
     HEADER = '\033[95m'
