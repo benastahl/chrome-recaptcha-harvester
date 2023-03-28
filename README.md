@@ -2,7 +2,7 @@
 _Created by Volt#9540_
 
 ***
-#### **This project allows you to open multiple chrome harvesters with your chrome profiles, and call for a `g_recaptcha_token` for use in your own project. The harvester is compatible with both ReCaptcha V2 and ReCaptcha V3**
+#### **This project allows you to open multiple chrome harvesters with your chrome profiles, and call for a `g_recaptcha_token` for use in your own project. The harvester is compatible with both ReCaptcha V2 and ReCaptcha V3. It is capable of one-clicks on V2 and 0.9 scores on V3.**
 ### Support
 If you have questions or need help setting up, please join the discord [here](https://discord.gg/2u2qCTXas5).
 
