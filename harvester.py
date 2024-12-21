@@ -9,7 +9,7 @@ import chromedriver_autoinstaller
 from datetime import datetime
 from termcolor import colored
 
-from selenium.common.exceptions import InvalidArgumentException, TimeoutException
+from selenium.common.exceptions import InvalidArgumentException, TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -18,7 +18,7 @@ from selenium import webdriver as selenium_webdriver
 import _utils
 
 colorama.init()
-# chromedriver_autoinstaller.install(path=os.getcwd() + _utils.fd + "chromedrivers", no_ssl=True)
+chromedriver_autoinstaller.install(path=os.getcwd() + _utils.fd + "chromedrivers", no_ssl=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 token_lock, captcha_lock = threading.Lock(), threading.Lock(),
@@ -194,7 +194,11 @@ class Harvester:
 
         recaptcha_token = None
         while not recaptcha_token:
-            recaptcha_token = self.driver.find_element(By.ID, "recaptcha-token").get_attribute('value')
+            try:
+                recaptcha_token = self.driver.find_element(By.ID, "recaptcha-token").get_attribute('value')
+            except NoSuchElementException:
+                self.log("no elem.", "p")
+                pass
 
         self.log('Valid token found', "s")
         return recaptcha_token
