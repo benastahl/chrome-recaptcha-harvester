@@ -126,14 +126,14 @@ if __name__ == '__main__':
     harvester.open_harvester("New1")
 
     v2_task_ids = [str(uuid.uuid4()) for _ in range(1)]
+    v3_task_ids = [str(uuid.uuid4()) for _ in range(1)]
 
     threads = []
+    
     for task_id in v2_task_ids:
         t = threading.Thread(target=harvester.harvest_token, args=("v2", "https://www.google.com/recaptcha/api2/demo", task_id,))
         t.start()
         threads.append(t)
-
-    v3_task_ids = [str(uuid.uuid4()) for _ in range(1)]
 
     for task_id in v3_task_ids:
         t = threading.Thread(target=harvester.harvest_token, args=("v3", "https://media.mbusa.com/", task_id,))
