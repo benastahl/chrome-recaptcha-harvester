@@ -97,8 +97,8 @@ if __name__ == '__main__':
     chrome_login(profile_name="MyCoolProfile")
     open_harvester(profile_name="MyCoolProfile")
 
-    harvest_token(captcha_type="v2", captcha_url="https://www.google.com/recaptcha/api2/demo")
-    harvest_token(captcha_type="v3", captcha_url="https://tech.aarons.com/")
+    v2_token = harvest_token(captcha_type="v2", captcha_url="https://www.google.com/recaptcha/api2/demo")
+    v3_token = harvest_token(captcha_type="v3", captcha_url="https://tech.aarons.com/")
 ```
 
 ---
@@ -112,47 +112,39 @@ import uuid
 import time
 
 
-def wait_for_token(task_id, timeout=60):
-    start = time.time()
-    while not harvester.token_ready(task_id):
-        if time.time() - start > timeout:
-            print(f"Timeout waiting for token {task_id}")
-            return None
-        time.sleep(0.5)
-    return harvester.get_token_safely(task_id)
-
-
 if __name__ == '__main__':
-    harvester.open_harvester("New1")
-
-    v2_task_ids = [str(uuid.uuid4()) for _ in range(1)]
-    v3_task_ids = [str(uuid.uuid4()) for _ in range(1)]
+    # login to your chrome account
+    harvester.chrome_login("YourCoolProfile")
+    
+    # open the harvester (waiting for captcha page)
+    harvester.open_harvester("YourCoolProfile")
+    
+    # generate task id strings (could be anything) to keep track of the tokens you request
+    task_number = 1
+    v2_task_ids = [str(uuid.uuid4()) for _ in range(task_number)]
 
     threads = []
     
+    # request tokens from the harvester (change to "v3" for v3)
     for task_id in v2_task_ids:
         t = threading.Thread(target=harvester.harvest_token, args=("v2", "https://www.google.com/recaptcha/api2/demo", task_id,))
         t.start()
         threads.append(t)
-
-    for task_id in v3_task_ids:
-        t = threading.Thread(target=harvester.harvest_token, args=("v3", "https://media.mbusa.com/", task_id,))
-        t.start()
-        threads.append(t)
-
+    
+    # wait for the tokens to finish (can be handled differently depending on what you want to do)
     tokens = []
     for task_id in v2_task_ids:
-        token = wait_for_token(task_id)
+        
+        # wait for token to be harvested by user
+        while not harvester.token_ready(task_id):
+            time.sleep(0.5)
+        
+        token = harvester.get_token_safely(task_id)
         tokens.append(token)
-
-    for task_id in v3_task_ids:
-        token = wait_for_token(task_id)
-        tokens.append(token)
-
+    
+    # wait for all threads to end
     for t in threads:
         t.join()
-
-    print(tokens)
 
     for token in tokens:
         print(
