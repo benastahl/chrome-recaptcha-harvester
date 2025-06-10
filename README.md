@@ -125,8 +125,6 @@ def wait_for_token(task_id, timeout=60):
 if __name__ == '__main__':
     harvester.open_harvester("New1")
 
-    harvester.harvest_token("v2", "https://www.google.com/recaptcha/api2/demo")
-
     v2_task_ids = [str(uuid.uuid4()) for _ in range(1)]
 
     threads = []
