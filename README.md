@@ -1,87 +1,226 @@
-# Chrome ReCaptcha Harvester
-_Created by mr.appa (discord)_
 
-***
-#### **This project allows you to open multiple chrome harvesters with your chrome profiles, and call for a `g_recaptcha_token` for use in your own project. The harvester is compatible with both ReCaptcha V2 and ReCaptcha V3. It is capable of one-clicks on V2 and 0.9 scores on V3.**
-### Support
-If you have questions or need help setting up, please join the discord [here](https://discord.gg/2u2qCTXas5).
+---
 
-***
-## Setup
-#### 1. Install Requirements
-Install all project requirements with `pip3 install -r requirements.txt` 
-#### 2. Chrome Login
-The `chrome_login` function only needs to called once for each profile you want to create. If you attempt to call it twice with the same `profile_name`, it will send an error. Once called, a browser will open where you will log-in to your chrome account.`chrome_login` takes in 2 arguments:
-- `profile_name`: which can be anything that meet file name formatting.
-- `proxy`: _Optional_. This is, by default, set to off. Meaning if you don't fill in the argument, the harvester will use `localhost` (or your own ip address). Argument format: `host:port:username:password`.
+# Chrome reCAPTCHA Harvester  
+_Created by mr.appa (Discord)_
+
+---
+
+## Overview
+
+This project allows you to spawn multiple Chrome-based CAPTCHA harvesters using custom Chrome profiles. It can solve both **reCAPTCHA v2** (checkbox) and **reCAPTCHA v3** (invisible), returning a valid `g_recaptcha_token` for use in your own automation workflows.
+
+- ✅ One-clicks on **reCAPTCHA v2**
+- ✅ High (0.9+) scores on **reCAPTCHA v3**
+- ✅ Fully thread-safe
+- ✅ Supports proxies with auth
+- ✅ Uses real Chrome profiles (boosts trust score)
+
+> **Need help?** Join the support [discord](https://discord.gg/2u2qCTXas5)
+
+---
+
+## ⚙️ Setup
+
+### 1. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+````
+
+---
+
+### 2. Create a Chrome Profile
 
 ```python
-chrome_login(profile_name="Your super cool profile", proxy="oogabooga.com:10101:jon:smith")
-```
-or (localhost)
-```python
-chrome_login(profile_name="Your super cool profile")
+from harvester import chrome_login
+
+chrome_login(profile_name="MyCoolProfile")
 ```
 
+This opens a new Chrome window. Log into your Google account (e.g., Gmail). The profile is saved for future use.
 
-#### 3. Open Harvester
-Open your harvester simply by calling the `open_harvester` with the `profile_name` you want to open the harvester with. Once called, a browser will open with a `Waiting for Captcha` page. This harvester is now on standby for any `harvest_token` function calls.
+> ✅ Only needs to be done **once** per profile.
+> 
+> ❌ Will raise an error if the same profile name is reused.
+
+Optional with proxy:
+
 ```python
-open_harvester(profile_name="Your super cool profile")
+chrome_login(profile_name="MyCoolProfile", proxy="host:port:user:pass")
 ```
 
-#### 4. Call for token
-To call for a `g_recaptcha_token`, simply call the `harvest_token` function with the captcha type and URL of the captcha location.
+---
 
-ReCaptcha V2:
+### 3. Start a Harvester
+
 ```python
-g_recaptcha_token = harvest_token(captcha_type="v2", url="https://www.google.com/recaptcha/api2/demo")
+from harvester import open_harvester
+
+open_harvester(profile_name="MyCoolProfile")
 ```
-ReCaptcha V3 (Invisible):
+
+> A browser window will open and display "Waiting for Captcha". It's now ready to receive harvesting tasks.
+
+---
+
+### 4. Harvest Tokens
+
 ```python
-g_recaptcha_token = harvest_token(captcha_type="v3", url="https://tech.aarons.com/")
+from harvester import harvest_token
+
+# reCAPTCHA v2
+token = harvest_token(captcha_type="v2", captcha_url="https://www.google.com/recaptcha/api2/demo")
+
+# reCAPTCHA v3 (invisible)
+token = harvest_token(captcha_type="v3", captcha_url="https://tech.aarons.com/")
 ```
-When called, a request will be put into a queue for the next available harvester for you to solve. Once solved, the function will return the `g_recaptcha_token`
-***
-### NOTES
-* The harvester is completely thread-safe. It is compatible with running high numbers of multi-threaded tasks.
-* When calling `harvest_token` with ReCaptcha V3 (`v3`), there will be a pause in between when the token is grabbed and when the page is fully loaded. **This is normal.** It is simply waiting for the V3 token to be generated.
-***
-## Examples
-Simple Example
+
+---
+
+## ⚠️ Notes
+
+* ✅ **Thread-safe** — supports high concurrency via Python threads.
+* 🕒 **V3 Tokens** may have a short delay after page load — this is normal and expected.
+* 🔒 **Proxy Support** — format: `host:port:user:pass`
+
+---
+
+## 🧪 Examples
+
+### 🔹 Basic Usage
+
 ```python
 from harvester import chrome_login, open_harvester, harvest_token
 
 if __name__ == '__main__':
-    # Creates browser profile after login. Should only be called once with same profile name.
-    chrome_login(profile_name="Your cool profile")
+    chrome_login(profile_name="MyCoolProfile")
+    open_harvester(profile_name="MyCoolProfile")
 
-    # Opens the harvester. Once opened, harvester waits for harvest_token call.
-    open_harvester(profile_name="Your cool profile")
-    
-    harvest_token(captcha_type="v2", url="https://www.google.com/recaptcha/api2/demo")
-    harvest_token(captcha_type="v3", url="https://tech.aarons.com/")
-
+    harvest_token(captcha_type="v2", captcha_url="https://www.google.com/recaptcha/api2/demo")
+    harvest_token(captcha_type="v3", captcha_url="https://tech.aarons.com/")
 ```
-Threading Example (multiple harvest_token calls at once)
+
+---
+
+### 🔹 Multi-threaded Token Harvesting
+
 ```python
-from harvester import chrome_login, open_harvester, harvest_token
 import threading
+import harvester
+import uuid
+import time
+
+
+def wait_for_token(task_id, timeout=60):
+    start = time.time()
+    while not harvester.token_ready(task_id):
+        if time.time() - start > timeout:
+            print(f"Timeout waiting for token {task_id}")
+            return None
+        time.sleep(0.5)
+    return harvester.get_token_safely(task_id)
+
 
 if __name__ == '__main__':
-    # Creates browser profile after login. Should only be called once with same profile name.
-    chrome_login(profile_name="Your cool profile")
+    harvester.open_harvester("New1")
 
-    # Opens the harvester. Once opened, harvester waits for harvest_token call.
-    open_harvester(profile_name="Your cool profile")
-    
-    # V3 (invisible) calls
-    for _ in range(3):
-        threading.Thread(target=harvest_token, args=("v3", "https://tech.aarons.com/")).start()
-    
-    # V2 calls
-    for _ in range(3):
-        threading.Thread(target=harvest_token, args=("v2", "https://www.google.com/recaptcha/api2/demo")).start()
+    harvester.harvest_token("v2", "https://www.google.com/recaptcha/api2/demo")
+
+    v2_task_ids = [str(uuid.uuid4()) for _ in range(1)]
+
+    threads = []
+    for task_id in v2_task_ids:
+        t = threading.Thread(target=harvester.harvest_token, args=("v2", "https://www.google.com/recaptcha/api2/demo", task_id,))
+        t.start()
+        threads.append(t)
+
+    v3_task_ids = [str(uuid.uuid4()) for _ in range(1)]
+
+    for task_id in v3_task_ids:
+        t = threading.Thread(target=harvester.harvest_token, args=("v3", "https://media.mbusa.com/", task_id,))
+        t.start()
+        threads.append(t)
+
+    tokens = []
+    for task_id in v2_task_ids:
+        token = wait_for_token(task_id)
+        tokens.append(token)
+
+    for task_id in v3_task_ids:
+        token = wait_for_token(task_id)
+        tokens.append(token)
+
+    for t in threads:
+        t.join()
+
+    print(tokens)
+
+    for token in tokens:
+        print(
+            f"""
+            Task ID:            {token.task_id}
+            Captcha URL:        {token.captcha_url}
+            Captcha Type:       {token.captcha_type}
+            Proxy Used:         {token.proxy_used}
+            Profile Used:       {token.profile_used}
+            Expiry Datetime:    {token.expiry_datetime}
+            Expired:            {token.expired}
+            """
+        )
+```
+
+---
+
+## 📦 Token Object Structure
+
+When you call `harvest_token(...)`, it returns a `Token` object containing metadata and the harvested CAPTCHA token.
+
+```python
+token = harvest_token("v2", "https://www.google.com/recaptcha/api2/demo")
+print(token.g_recaptcha_token)
+```
+
+### 🔍 Token Fields
+
+| Field               | Type                 | Description                                                           |
+| ------------------- | -------------------- | --------------------------------------------------------------------- |
+| `task_id`           | `str`                | Unique identifier for the CAPTCHA task.                               |
+| `captcha_url`       | `str`                | The URL where the CAPTCHA challenge was solved.                       |
+| `captcha_type`      | `str`                | CAPTCHA type (`"v2"` or `"v3"`).                                      |
+| `g_recaptcha_token` | `Optional[str]`      | The solved CAPTCHA token returned by Google.                          |
+| `profile_used`      | `Optional[str]`      | The Chrome profile name used for solving the CAPTCHA.                 |
+| `proxy_used`        | `Optional[str]`      | The proxy (if any) that was used during CAPTCHA solving.              |
+| `expiry_datetime`   | `Optional[datetime]` | Timestamp when the token was generated.                               |
+| `expired`           | `bool`               | `True` if more than 2 minutes have passed since the token was issued. |
+
+### ✅ Example
+
+```python
+print(token.task_id)
+print(token.captcha_type)
+print("Token:", token.g_recaptcha_token)
+print("Expired?", token.expired)
+```
+
+
+---
+
+## 📁 Project Structure
 
 ```
-***
+harvester/
+├── harvester.py               # Main module
+├── _utils.py                  # Utility functions for Chrome profiles and proxy config
+├── chromedrivers/             # Automatically managed Chromedriver binaries
+└── requirements.txt
+```
+
+---
+
+## 📬 Questions?
+
+For support, bug reports, or suggestions, [join the Discord](https://discord.gg/2u2qCTXas5) or open an issue in the repository.
+
+---
+

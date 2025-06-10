@@ -3,208 +3,35 @@ import urllib3
 import colorama
 import os
 import uuid
-import zipfile
 import chromedriver_autoinstaller
+import time
 
-from datetime import datetime
-from termcolor import colored
-
-from selenium.common.exceptions import InvalidArgumentException, TimeoutException, NoSuchElementException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium import webdriver as selenium_webdriver
 import _utils
+from _utils import Token, Harvester, token_lock, captcha_lock, harvesters, tokens
+
+from selenium.common.exceptions import InvalidArgumentException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium import webdriver as selenium_webdriver
+from selenium.webdriver.support import expected_conditions as EC
+from typing import Optional
 
 colorama.init()
 chromedriver_autoinstaller.install(path=os.getcwd() + _utils.fd + "chromedrivers", no_ssl=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-token_lock, captcha_lock = threading.Lock(), threading.Lock(),
-
 # Harvester
-harvesters = []
-token_inquirers = {}
-tokens = {}
 
+def chrome_login(profile_name: str) -> None:
+    """
+    Opens a Chrome browser with a new user profile for manual login (e.g., Gmail).
+    Saves the profile after login for future automated use.
 
-class Harvester:
-    def __init__(self, proxy, num, profile_name):
-        self.driver = None
-        self.num = num
-        self.proxy = proxy
-        self.profile_name = profile_name
-
-    def log(self, text, status):
-        statuses = {
-            "s": 'green',
-            "f": "red",
-            "p": "cyan",
-            "d": "yellow",
-        }
-        if status in statuses:
-            print(colored(
-                f"[{datetime.now().strftime('%m-%d-%Y %H:%M:%S')}] - [{self.num}] - [Captcha Harvester] - {text}",
-                statuses[status]))
-
-    @staticmethod
-    def token_needed():
-        global tokens
-        token_lock.acquire()
-        if len(token_inquirers) > 0:
-            return list(token_inquirers.keys())[0]
-        return False
-
-    def waiting(self):
-        waiting_html = """
-        <html lang="en">
-
-            <style>
-                .waiting-title {
-                    margin-top: 150px;
-
-                }
-                h1 {
-                text-align: center;
-                font-size: 45px;
-                }
-                img {
-                text-align: center;
-                }
-            </style>
-
-            <head>
-                <meta charset="UTF-8">
-                <title>Chrome Captcha Harvester</title>
-            </head>
-
-            <body>
-                <h1 class="waiting-title">Waiting for Captcha...</h1>
-                <h1 style="font-size: 20px;">Harvester: %s</h1>
-                <h1 style="font-size: 20px;">Profile: %s</h1>
-                <!-- <img src="https://thumbs.gfycat.com/AgonizingDiligentHapuka-max-1mb.gif" alt="Loading..." width="500" height="300"> -->
-            </body>
-
-        </html>
-
-
-                """ % (self.num, self.profile_name)
-        self.driver.get("data:text/html;charset=utf-8," + waiting_html)
-
-    def open(self):
-        chrome_options = _utils.profile_arguments(Options(), profile_name=self.profile_name)
-
-        # Proxy Setting (extension)
-        if self.proxy:
-            manifest_json = """
-            {
-                "version": "1.0.0",
-                "manifest_version": 2,
-                "name": "Chrome Proxy",
-                "permissions": [
-                    "proxy",
-                    "tabs",
-                    "unlimitedStorage",
-                    "storage",
-                    "<all_urls>",
-                    "webRequest",
-                    "webRequestBlocking"
-                ],
-                "background": {
-                    "scripts": ["background.js"]
-                },
-                "minimum_chrome_version":"22.0.0"
-            }
-            """
-            background_js = """
-            var config = {
-                    mode: "fixed_servers",
-                    rules: {
-                    singleProxy: {
-                        scheme: "http",
-                        host: "%s",
-                        port: parseInt(%s)
-                    },
-                    bypassList: ["localhost"]
-                    }
-                };
-            chrome.proxy.settings.set({value: config, scope: "regular"}, function() {});
-            function callbackFn(details) {
-                return {
-                    authCredentials: {
-                        username: "%s",
-                        password: "%s"
-                    }
-                };
-            }
-            chrome.webRequest.onAuthRequired.addListener(
-                        callbackFn,
-                        {urls: ["<all_urls>"]},
-                        ['blocking']
-            );
-            """ % (_utils.proxy_config(self.proxy))
-            pluginfile = 'proxy_auth_plugin.zip'
-
-            with zipfile.ZipFile(pluginfile, 'w') as zp:
-                zp.writestr("manifest.json", manifest_json)
-                zp.writestr("background.js", background_js)
-            chrome_options.add_extension(pluginfile)
-
-        self.driver = selenium_webdriver.Chrome(chrome_options=chrome_options)
-        self.waiting()
-
-    def wait_for_captcha(self):
-        try:
-            self.waiting()
-            while True:
-
-                task_id = self.token_needed()
-                if task_id:
-                    self.log("Token in need! Grabbing one...", "p")
-                    task = token_inquirers[task_id]
-                    token_inquirers.pop(task_id)
-                    token_lock.release()
-
-                    self.driver.get(task["url"])
-                    g_recaptcha_token = self.get_valid_token(task["type"])
-                    with token_lock:
-                        tokens[task_id] = g_recaptcha_token
-                    self.waiting()
-                    continue
-                token_lock.release()
-        except InvalidArgumentException:
-            self.driver.quit()
-            raise InvalidArgumentException('Make sure you do not have any browsers open with the same browser profile.')
-
-    def get_valid_token(self, captcha_type):
-        self.log("Waiting for Captcha...", "p")
-
-        frame_titles = {
-            "v2": "recaptcha challenge expires in two minutes",
-            "v3": "reCAPTCHA"
-        }
-        try:
-            frame = WebDriverWait(self.driver, 20).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, f"iframe[title='{frame_titles[captcha_type]}']")))
-            self.driver.switch_to.frame(frame)
-        except TimeoutError or TimeoutException:
-            self.driver.refresh()
-            return self.get_valid_token(captcha_type)
-
-        recaptcha_token = None
-        while not recaptcha_token:
-            try:
-                recaptcha_token = self.driver.find_element(By.ID, "recaptcha-token").get_attribute('value')
-            except NoSuchElementException:
-                self.log("no elem.", "p")
-                pass
-
-        self.log('Valid token found', "s")
-        return recaptcha_token
-
-
-def chrome_login(profile_name: str):
+    :param profile_name: The name of the browser profile to create and save.
+    :return: None
+    :raises AssertionError: If the profile already exists in the profile directory.
+    :raises FileExistsError: If a conflicting profile name is found.
+    :raises InvalidArgumentException: If Chrome fails to launch due to profile conflicts.
+    """
     try:
         try:
             if profile_name in os.listdir(_utils.get_profiles_path("")):
@@ -212,27 +39,43 @@ def chrome_login(profile_name: str):
                     "Failed to create new browser profile. Try a different name.")
 
             print("Opening with new user data...")
-            login_args = _utils.profile_arguments(selenium_webdriver.ChromeOptions(), profile_name=profile_name)
+            login_args = _utils.profile_arguments(
+                selenium_webdriver.ChromeOptions(),
+                profile_name=profile_name
+            )
 
             driver = selenium_webdriver.Chrome(options=login_args)
 
         except FileExistsError:
             raise FileExistsError('That profile name already exists. Choose another.')
-        # except WebDriverException:
-        #     print("Chromedriver version is OUT OF DATE. Replace with latest stable version.")
 
         print("Enter your login information.")
         driver.get('https://gmail.com')
-        input("Press enter once you have logged in: ")
+
+        try:
+            WebDriverWait(driver, 120).until(
+                EC.url_contains('mail.google.com/mail')
+            )
+        except TimeoutException:
+            driver.quit()
+            raise TimeoutException("Login timed out.")
 
         driver.quit()
         print(f'Profile Save "{profile_name}" completed.')
+
     except InvalidArgumentException:
         raise InvalidArgumentException(
             "Make sure you do not have any browsers open with the same browser profile.")
 
+def open_harvester(profile_name: str, proxy: Optional[str] = None) -> None:
+    """
+    Launches a CAPTCHA harvester using the given browser profile and optional proxy.
 
-def open_harvester(profile_name: str, proxy=None):
+    :param profile_name: The name of the browser profile to use.
+    :param proxy: An optional proxy address to route the harvester traffic through.
+    :return: None
+    :raises AssertionError: If the specified profile name is not found.
+    """
     browser_profiles = os.listdir(_utils.get_profiles_path(""))
     assert profile_name in browser_profiles, "Profile not found."
 
@@ -245,24 +88,79 @@ def open_harvester(profile_name: str, proxy=None):
     harvester.open()
     threading.Thread(target=harvester.wait_for_captcha, args=()).start()
 
+def harvest_token(captcha_type: str, captcha_url: str, task_id: str = str(uuid.uuid4())) -> Token:
+    """
+    Handles the process of acquiring a CAPTCHA token in a thread-safe manner.
 
-def harvest_token(captcha_type, url):
-    print("In queue for captcha token...")
+    This function registers a task (identified by `task_id`) that requires a CAPTCHA
+    token, enters a synchronized queue to wait for the token to be generated,
+    and returns the token once it's available.
+
+    :param captcha_type: The type of CAPTCHA to be solved (e.g., 'recaptcha', 'hcaptcha').
+    :param captcha_url: The URL for which the CAPTCHA token is being requested.
+    :param task_id: (optional) A unique identifier for the token request task. Defaults to a new UUID.
+
+    :return: The acquired CAPTCHA token associated with the task.
+    """
+
+    global tokens
+
+    # Register this token request under a thread-safe token_inquirers dictionary
+    with token_lock:
+        tokens[task_id] = Token(
+            task_id=task_id,
+            captcha_type=captcha_type,
+            captcha_url=captcha_url
+        )
+
+    # Wait for token availability in a thread-safe way using captcha_lock
+    with captcha_lock:
+
+        # Busy-wait loop until a token is assigned for this task_id
+        token = tokens.get(task_id)
+        while not token.g_recaptcha_token:
+            time.sleep(0.5)  # let's not kill your computer
+            continue  # This is a spinlock; could be optimized with sleep or event
+
+        print("Task received token:", token.g_recaptcha_token)
+
+        # Optional cleanup: remove the token from the dictionary if no longer needed
+        # with token_lock:
+        #     tokens.pop(task_id)
+
+    return token
+
+def token_ready(task_id: str) -> bool:
+    """
+    Checks whether a CAPTCHA token has been set for a given task.
+
+    Thread-safe access to the global tokens dictionary.
+
+    :param task_id: The ID of the CAPTCHA task to check.
+    :type task_id: str
+    :return: True if a token is present, False otherwise.
+    :rtype: bool
+    :raises KeyError: If the task_id is not found in the tokens dictionary.
+    """
     global tokens
     with token_lock:
-        task_id = uuid.uuid4()
-        token_inquirers[task_id] = {
-            "type": captcha_type,
-            "url": url,
-        }
+        token = tokens.get(task_id)
+        return bool(token and token.g_recaptcha_token)
 
-    # Enter queue to get token
-    with captcha_lock:
-        while not tokens.get(task_id):
-            continue
-        g_recaptcha_token = tokens[task_id]
-        print("Task received token:", g_recaptcha_token)
-        with token_lock:
-            tokens.pop(task_id)
+def get_token_safely(task_id: str) -> Token:
+    """
+    Safely retrieves a Token object associated with the given task_id from the global tokens dictionary.
 
-    return g_recaptcha_token
+    Access is thread-safe using a lock to prevent race conditions.
+
+    :param task_id: The ID of the CAPTCHA task whose token is being retrieved.
+    :type task_id: str
+    :return: The Token object associated with the given task_id.
+    :rtype: Token
+    :raises KeyError: If no token is found for the given task_id.
+    """
+    global tokens
+    with token_lock:
+        token = tokens.get(task_id)  # May raise KeyError if task_id not present
+
+    return token
