@@ -17,7 +17,6 @@ from selenium.webdriver.support import expected_conditions as EC
 
 token_lock, captcha_lock = threading.Lock(), threading.Lock()
 
-
 class Harvester:
     def __init__(self, proxy, num, profile_name):
         self.driver = None
@@ -43,7 +42,7 @@ class Harvester:
         token_lock.acquire()
 
         # dear god. pretty much just getting the tokens that have been inquired but not collected yet.
-        inquired_tokens = [key for key, token in tokens.items() if not token.g_recaptcha_token]
+        inquired_tokens = [key for key, token in tokens.items() if not token.ingested]
 
         # if there are any inquired tokens, go grab the latest one inquired (first in, last out)
         if len(inquired_tokens) > 0:
@@ -56,7 +55,7 @@ class Harvester:
             with open("harvester.html", "r", encoding="utf-8") as f:
                 waiting_html = f.read()
         except FileNotFoundError:
-            self.log("Missing 'waiting.html' file", "f")
+            self.log("Missing 'harvester.html' file", "f")
             return
 
         # Inject dynamic values (e.g., %s placeholders)
@@ -133,8 +132,9 @@ class Harvester:
 
                 task_id = self.token_needed()
                 if task_id:
-                    self.log("Token in need! Grabbing one...", "p")
+                    self.log(f"Token in need! Grabbing one ({task_id})...", "p")
                     token = tokens[task_id]
+                    tokens[task_id].ingested = True
                     token_lock.release()
 
                     self.driver.get(token.captcha_url)
@@ -224,6 +224,7 @@ class Token:
         self.task_id = task_id
         self.captcha_url = captcha_url
         self.captcha_type = captcha_type
+        self.ingested = False
 
         # Set later by CAPTCHA harvesting process
         self.g_recaptcha_token: Optional[str] = None
