@@ -185,6 +185,7 @@ print(token.g_recaptcha_token)
 | `proxy_used`        | `Optional[str]`      | The proxy (if any) that was used during CAPTCHA solving.              |
 | `expiry_datetime`   | `Optional[datetime]` | Timestamp when the token was generated.                               |
 | `expired`           | `bool`               | `True` if more than 2 minutes have passed since the token was issued. |
+| `ingested`          | `bool`               | `True` if token has entered the harvester. Really only for internal   |
 
 ### ✅ Example
 
