@@ -122,8 +122,6 @@ def harvest_token(captcha_type: str, captcha_url: str, task_id: str = str(uuid.u
             time.sleep(0.5)  # let's not kill your computer
             continue  # This is a spinlock; could be optimized with sleep or event
 
-        print(f"Task ({task_id}) received token")
-
         # Optional cleanup: remove the token from the dictionary if no longer needed
         # with token_lock:
         #     tokens.pop(task_id)

@@ -33,7 +33,7 @@ class Harvester:
         }
         if status in statuses:
             print(colored(
-                f"[{datetime.now().strftime('%m-%d-%Y %H:%M:%S')}] - [{self.num}] - [Captcha Harvester] - {text}",
+                f"[{datetime.now().strftime('%m-%d-%Y %H:%M:%S')}] - [Captcha Harvester] - [{self.num}] - {text}",
                 statuses[status]))
 
     @staticmethod
@@ -132,7 +132,7 @@ class Harvester:
 
                 task_id = self.token_needed()
                 if task_id:
-                    self.log(f"Token in need! Grabbing one ({task_id})...", "p")
+                    self.log(f"Token in need! Grabbing one (task: {task_id})...", "p")
                     token = tokens[task_id]
                     tokens[task_id].ingested = True
                     token_lock.release()
@@ -178,7 +178,7 @@ class Harvester:
                 self.log("no elem.", "p")
                 pass
 
-        self.log('Valid token found', "s")
+        self.log(f'Valid token found.', "s")
         return recaptcha_token
 
 
