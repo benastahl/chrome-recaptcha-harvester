@@ -150,12 +150,14 @@ if __name__ == '__main__':
         print(
             f"""
             Task ID:            {token.task_id}
+            Token Value:        {token.g_recaptcha_token[0:30]}...
             Captcha URL:        {token.captcha_url}
             Captcha Type:       {token.captcha_type}
             Proxy Used:         {token.proxy_used}
             Profile Used:       {token.profile_used}
             Expiry Datetime:    {token.expiry_datetime}
             Expired:            {token.expired}
+            Ingested:           {token.ingested}
             """
         )
 ```
@@ -183,6 +185,7 @@ print(token.g_recaptcha_token)
 | `proxy_used`        | `Optional[str]`      | The proxy (if any) that was used during CAPTCHA solving.              |
 | `expiry_datetime`   | `Optional[datetime]` | Timestamp when the token was generated.                               |
 | `expired`           | `bool`               | `True` if more than 2 minutes have passed since the token was issued. |
+| `ingested`          | `bool`               | `True` if token has entered the harvester. Really only for internal   |
 
 ### ✅ Example
 
@@ -213,4 +216,82 @@ harvester/
 For support, bug reports, or suggestions, [join the Discord](https://discord.gg/2u2qCTXas5) or open an issue in the repository.
 
 ---
+
+```example output
+(venv) benastahl@Bens-MacBook-Pro chrome-recaptcha-harvester % python3 main.py
+[06-14-2025 14:57:10] - [2] - [Captcha Harvester] - Token in need! Grabbing one (3eb09727-276b-4336-ac04-9ac4782b4ff0)...
+[06-14-2025 14:57:10] - [1] - [Captcha Harvester] - Token in need! Grabbing one (7b629dad-0664-4c79-ba01-f93d62e971b2)...
+[06-14-2025 14:57:11] - [2] - [Captcha Harvester] - Waiting for Captcha...
+[06-14-2025 14:57:11] - [1] - [Captcha Harvester] - Waiting for Captcha...
+[06-14-2025 14:57:13] - [1] - [Captcha Harvester] - Valid token found
+[06-14-2025 14:57:13] - [1] - [Captcha Harvester] - Token in need! Grabbing one (8bf444ae-ce87-46a4-abad-ff7f1477f0b8)...
+[06-14-2025 14:57:13] - [1] - [Captcha Harvester] - Waiting for Captcha...
+[06-14-2025 14:57:14] - [2] - [Captcha Harvester] - Valid token found
+[06-14-2025 14:57:14] - [2] - [Captcha Harvester] - Token in need! Grabbing one (ecf6b6f5-030e-48d6-b118-02213e4cc00a)...
+Task (3eb09727-276b-4336-ac04-9ac4782b4ff0) received token
+Task (7b629dad-0664-4c79-ba01-f93d62e971b2) received token
+[06-14-2025 14:57:15] - [2] - [Captcha Harvester] - Waiting for Captcha...
+[06-14-2025 14:57:15] - [1] - [Captcha Harvester] - Valid token found
+[06-14-2025 14:57:15] - [1] - [Captcha Harvester] - Token in need! Grabbing one (c85921c3-f8e7-4b74-86d1-418197101f73)...
+Task (8bf444ae-ce87-46a4-abad-ff7f1477f0b8) received token
+[06-14-2025 14:57:16] - [1] - [Captcha Harvester] - Waiting for Captcha...
+[06-14-2025 14:57:16] - [2] - [Captcha Harvester] - Valid token found
+Task (ecf6b6f5-030e-48d6-b118-02213e4cc00a) received token
+[06-14-2025 14:57:17] - [1] - [Captcha Harvester] - Valid token found
+Task (c85921c3-f8e7-4b74-86d1-418197101f73) received token
+
+            Task ID:            7b629dad-0664-4c79-ba01-f93d62e971b2
+            Token Value:        03AFcWeA7P...
+            Captcha URL:        https://www.google.com/recaptcha/api2/demo
+            Captcha Type:       v2
+            Proxy Used:         None
+            Profile Used:       YourCoolProfile
+            Expiry Datetime:    2025-06-14 14:59:13.229878
+            Expired:            False
+            Ingested:           True
+            
+
+            Task ID:            8bf444ae-ce87-46a4-abad-ff7f1477f0b8
+            Token Value:        03AFcWeA7Y...
+            Captcha URL:        https://www.google.com/recaptcha/api2/demo
+            Captcha Type:       v2
+            Proxy Used:         None
+            Profile Used:       YourCoolProfile
+            Expiry Datetime:    2025-06-14 14:59:15.475580
+            Expired:            False
+            Ingested:           True
+            
+
+            Task ID:            ecf6b6f5-030e-48d6-b118-02213e4cc00a
+            Token Value:        03AFcWeA4N...
+            Captcha URL:        https://www.google.com/recaptcha/api2/demo
+            Captcha Type:       v2
+            Proxy Used:         None
+            Profile Used:       New1
+            Expiry Datetime:    2025-06-14 14:59:16.412794
+            Expired:            False
+            Ingested:           True
+            
+
+            Task ID:            c85921c3-f8e7-4b74-86d1-418197101f73
+            Token Value:        03AFcWeA77...
+            Captcha URL:        https://www.google.com/recaptcha/api2/demo
+            Captcha Type:       v2
+            Proxy Used:         None
+            Profile Used:       YourCoolProfile
+            Expiry Datetime:    2025-06-14 14:59:19.443647
+            Expired:            False
+            Ingested:           True
+            
+
+            Task ID:            3eb09727-276b-4336-ac04-9ac4782b4ff0
+            Token Value:        03AFcWeA5A...
+            Captcha URL:        https://www.google.com/recaptcha/api2/demo
+            Captcha Type:       v2
+            Proxy Used:         None
+            Profile Used:       New1
+            Expiry Datetime:    2025-06-14 14:59:14.383790
+            Expired:            False
+            Ingested:           True
+```
 
