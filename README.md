@@ -58,6 +58,9 @@ chrome_login(profile_name="MyCoolProfile", proxy="host:port:user:pass")
 from harvester import open_harvester
 
 open_harvester(profile_name="MyCoolProfile")
+
+# proxy example
+open_harvester(profile_name="MyCoolProfileWithProxy", proxy="host:port:username:password")
 ```
 
 > A browser window will open and display "Waiting for Captcha". It's now ready to receive harvesting tasks.
