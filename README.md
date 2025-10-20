@@ -165,19 +165,7 @@ if __name__ == '__main__':
         t.join()
 
     for token in tokens:
-        print(
-            f"""
-            Task ID:            {token.task_id}
-            Token Value:        {token.g_recaptcha_token[0:30]}...
-            Captcha URL:        {token.captcha_url}
-            Captcha Type:       {token.captcha_type}
-            Proxy Used:         {token.proxy_used}
-            Profile Used:       {token.profile_used}
-            Expiry Datetime:    {token.expiry_datetime}
-            Expired:            {token.expired}
-            Ingested:           {token.ingested}
-            """
-        )
+        print(token)
 ```
 
 ---
