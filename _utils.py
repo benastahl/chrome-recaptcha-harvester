@@ -173,7 +173,14 @@ class Harvester:
         recaptcha_token = None
         while not recaptcha_token:
             try:
-                recaptcha_token = self.driver.find_element(By.ID, "recaptcha-token").get_attribute('value')
+                # checks for valid token based on length (not too sure what it has to do with validity)
+                # recaptcha_token = self.driver.find_element(By.ID, "recaptcha-token").get_attribute('value')
+                pot_token = self.driver.find_element(By.ID, "recaptcha-token").get_attribute('value')
+                if len(pot_token) > 1800:
+                    continue
+
+                recaptcha_token = pot_token
+
             except NoSuchElementException:
                 self.log("no elem.", "p")
                 pass
