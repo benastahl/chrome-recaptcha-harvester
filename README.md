@@ -124,19 +124,8 @@ if __name__ == '__main__':
     
     # synchronous call example
     synch_token = harvester.harvest_token("v2", "https://www.google.com/recaptcha/api2/demo")
-    print(
-        f"""
-            Task ID:            {synch_token.task_id}
-            Token Value:        {synch_token.g_recaptcha_token[0:30]}...
-            Captcha URL:        {synch_token.captcha_url}
-            Captcha Type:       {synch_token.captcha_type}
-            Proxy Used:         {synch_token.proxy_used}
-            Profile Used:       {synch_token.profile_used}
-            Expiry Datetime:    {synch_token.expiry_datetime}
-            Expired:            {synch_token.expired}
-            Ingested:           {synch_token.ingested}
-            """
-    )    
+    print(synch_token)
+        
     # generate task id strings (could be anything) to keep track of the tokens you request
     task_number = 5
     v2_task_ids = [str(uuid.uuid4()) for _ in range(task_number)]
